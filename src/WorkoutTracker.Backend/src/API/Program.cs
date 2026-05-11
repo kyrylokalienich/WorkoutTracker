@@ -44,6 +44,8 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+await AppDbInitializer.InitializeAsync(app.Services);
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

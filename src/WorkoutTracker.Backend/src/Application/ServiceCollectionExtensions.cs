@@ -26,6 +26,7 @@ public static class ServiceCollectionExtensions
 
         // Register services
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IExerciseService, ExerciseService>();
 
         return services;
     }
