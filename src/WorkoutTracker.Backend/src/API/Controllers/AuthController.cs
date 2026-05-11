@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using WorkoutTracker.Application.Interfaces.Services;
 using WorkoutTracker.Application.Models.Request.Auth;
@@ -90,7 +91,7 @@ public class AuthController : ControllerBase
             return Unauthorized("User not authenticated.");
         }
 
-        var userIdClaim = User.FindFirst("sub")?.Value;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(userIdClaim, out var userId))
         {
             return Unauthorized("Invalid token.");
@@ -131,7 +132,7 @@ public class AuthController : ControllerBase
             return Unauthorized("User not authenticated.");
         }
 
-        var userIdClaim = User.FindFirst("sub")?.Value;
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(userIdClaim, out var userId))
         {
             return Unauthorized("Invalid token.");
