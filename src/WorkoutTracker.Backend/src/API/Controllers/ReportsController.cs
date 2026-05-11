@@ -5,8 +5,7 @@ namespace WorkoutTracker.API.Controllers;
 /// <summary>
 /// API endpoints for viewing workout reports and progress.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
+[Route("api/reports")]
 public class ReportsController : BaseController
 {
     /// <summary>

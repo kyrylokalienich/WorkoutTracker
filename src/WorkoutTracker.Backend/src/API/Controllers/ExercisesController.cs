@@ -8,8 +8,7 @@ namespace WorkoutTracker.API.Controllers;
 /// <summary>
 /// API endpoints for managing exercises (read-only for now).
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
+[Route("api/exercises")]
 public class ExercisesController : BaseController
 {
     private readonly IExerciseService _exerciseService;

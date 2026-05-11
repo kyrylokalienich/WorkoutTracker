@@ -31,6 +31,8 @@ public class WorkoutPlanExerciseConfiguration : IEntityTypeConfiguration<Workout
         // Indexes
         builder.HasIndex(wpe => wpe.WorkoutPlanId);
         builder.HasIndex(wpe => wpe.ExerciseId);
+        builder.HasIndex(wpe => new { wpe.WorkoutPlanId, wpe.ExerciseId })
+            .IsUnique();
 
         builder.ToTable("workout_plan_exercises");
     }

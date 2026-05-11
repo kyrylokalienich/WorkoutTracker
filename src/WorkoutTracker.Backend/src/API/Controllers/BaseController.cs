@@ -5,7 +5,6 @@ namespace WorkoutTracker.API.Controllers;
 
 [ApiController]
 [Authorize]
-[Route("api/[controller]")]
 public abstract class BaseController : ControllerBase
 {
     /// <summary>

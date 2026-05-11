@@ -5,8 +5,7 @@ namespace WorkoutTracker.API.Controllers;
 /// <summary>
 /// API endpoints for managing workout sessions.
 /// </summary>
-[ApiController]
-[Route("api/[controller]")]
+[Route("api/workout-sessions")]
 public class WorkoutSessionsController : BaseController
 {
     /// <summary>
