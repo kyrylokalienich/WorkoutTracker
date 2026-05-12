@@ -1,0 +1,28 @@
+using System.ComponentModel.DataAnnotations;
+
+namespace WorkoutTracker.Application.Models.Request.WorkoutSessions;
+
+public class CompleteWorkoutSessionRequest
+{
+    [Required]
+    public List<CompleteSessionExerciseRequest> Exercises { get; set; } = new();
+}
+
+public class CompleteSessionExerciseRequest
+{
+    [Required]
+    public int SessionExerciseId { get; set; }
+
+    [Required]
+    [Range(0, int.MaxValue)]
+    public int ActualSets { get; set; }
+
+    [Required]
+    [Range(0, int.MaxValue)]
+    public int ActualReps { get; set; }
+
+    public decimal? ActualWeightKg { get; set; }
+
+    [MaxLength(2000)]
+    public string? Notes { get; set; }
+}
