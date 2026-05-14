@@ -40,6 +40,8 @@ public class WorkoutSessionConfiguration : IEntityTypeConfiguration<WorkoutSessi
         // Indexes
         builder.HasIndex(ws => ws.UserId);
         builder.HasIndex(ws => new { ws.UserId, ws.ScheduledAtUtc });
+        builder.HasIndex(ws => new { ws.UserId, ws.CompletedAtUtc })
+            .HasDatabaseName("IX_workout_sessions_UserId_CompletedAtUtc");
 
         // Navigation properties
         builder.HasMany(ws => ws.WorkoutSessionExercises)
