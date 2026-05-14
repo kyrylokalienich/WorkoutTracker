@@ -2,22 +2,36 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using WorkoutTracker.API;
 using WorkoutTracker.Application;
 using WorkoutTracker.Application.Configurations;
 using WorkoutTracker.Persistence;
+
+// Load .env into process environment before configuration binds (overrides appsettings via env vars).
+DotEnvLoader.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
 
-// Get JWT configuration
-var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtConfiguration>();
-if (jwtConfig != null)
+// JWT: non-sensitive defaults may live in appsettings; signing key must come from environment / .env (Jwt__SecretKey).
+var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtConfiguration>()
+    ?? throw new InvalidOperationException("Jwt configuration section is missing from appsettings.");
+
+if (string.IsNullOrWhiteSpace(jwtConfig.SecretKey))
 {
-    var key = Encoding.ASCII.GetBytes(jwtConfig.SecretKey);
-    
-    builder.Services.AddAuthentication(options =>
+    throw new InvalidOperationException(
+        "Jwt:SecretKey is not set. Add Jwt__SecretKey to a .env file (see src/API/.env.example) or set the environment variable.");
+}
+
+var signingKeyBytes = Encoding.UTF8.GetBytes(jwtConfig.SecretKey);
+if (signingKeyBytes.Length < 32)
+{
+    throw new InvalidOperationException("Jwt:SecretKey must be at least 32 UTF-8 bytes for HS256.");
+}
+
+builder.Services.AddAuthentication(options =>
     {
         options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
         options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -27,7 +41,7 @@ if (jwtConfig != null)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(key),
+            IssuerSigningKey = new SymmetricSecurityKey(signingKeyBytes),
             ValidateIssuer = true,
             ValidIssuer = jwtConfig.Issuer,
             ValidateAudience = true,
@@ -36,7 +50,6 @@ if (jwtConfig != null)
             ClockSkew = TimeSpan.Zero
         };
     });
-}
 
 builder.Services.AddAuthorization();
 builder.Services.AddControllers();  

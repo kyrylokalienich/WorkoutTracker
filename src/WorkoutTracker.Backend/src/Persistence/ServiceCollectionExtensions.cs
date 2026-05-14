@@ -11,6 +11,13 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            throw new InvalidOperationException(
+                "Database connection string is not configured. Set ConnectionStrings__DefaultConnection in a .env file " +
+                "(see src/API/.env.example) or via environment variables / secret manager.");
+        }
+
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
 

@@ -12,7 +12,7 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        // Bind Jwt configuration from appsettings
+        // Bind Jwt configuration (appsettings + environment variables / .env)
         services.AddSingleton<JwtConfiguration>(sp =>
         {
             var config = sp.GetRequiredService<IConfiguration>();
