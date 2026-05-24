@@ -201,7 +201,7 @@ public class ReportService : IReportService
                 null);
         }
 
-        return (null, (from, to));
+        return (null, (DateTime.SpecifyKind(from, DateTimeKind.Utc), DateTime.SpecifyKind(to, DateTimeKind.Utc)));
     }
 
     private sealed record ValidationError(string Code, object Details);
