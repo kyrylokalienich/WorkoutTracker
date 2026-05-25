@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CardActions from "@mui/material/CardActions";
@@ -11,16 +12,30 @@ import Box from "@mui/material/Box";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import type { WorkoutPlanSummaryResponse } from "@/types/plan";
 
 interface PlanCardProps {
   plan: WorkoutPlanSummaryResponse;
   onClick: () => void;
   onEdit: () => void;
-  onDelete: () => void;
+  onDelete: () => Promise<void> | void;
 }
 
 export function PlanCard({ plan, onClick, onEdit, onDelete }: PlanCardProps) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+    setDeleteLoading(true);
+    try {
+      await onDelete();
+    } finally {
+      setDeleteLoading(false);
+      setConfirmOpen(false);
+    }
+  };
+
   return (
     <Card
       sx={{
@@ -68,15 +83,21 @@ export function PlanCard({ plan, onClick, onEdit, onDelete }: PlanCardProps) {
           <IconButton
             size="small"
             color="error"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
+            onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
           >
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </CardActions>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete plan"
+        message={`Delete "${plan.name}"? This cannot be undone.`}
+        loading={deleteLoading}
+        onConfirm={handleDeleteConfirm}
+        onClose={() => setConfirmOpen(false)}
+      />
     </Card>
   );
 }

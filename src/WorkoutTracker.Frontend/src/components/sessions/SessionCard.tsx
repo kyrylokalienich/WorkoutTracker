@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import CardActions from "@mui/material/CardActions";
@@ -10,6 +11,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import TimerIcon from "@mui/icons-material/Timer";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
@@ -22,7 +24,7 @@ import type { WorkoutSessionSummaryResponse } from "@/types/session";
 interface SessionCardProps {
   session: WorkoutSessionSummaryResponse;
   onClick: () => void;
-  onDelete: () => void;
+  onDelete: () => Promise<void> | void;
   /** Called when user clicks Start on a Planned session. */
   onStart?: () => void;
   /** Called when user clicks Finish on an InProgress session. */
@@ -49,6 +51,19 @@ export function SessionCard({
   onFinish,
   actionLoading = false,
 }: SessionCardProps) {
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+    setDeleteLoading(true);
+    try {
+      await onDelete();
+    } finally {
+      setDeleteLoading(false);
+      setConfirmOpen(false);
+    }
+  };
+
   const isInProgress = session.status === WorkoutStatus.InProgress;
   const isCompleted = session.status === WorkoutStatus.Completed;
 
@@ -144,15 +159,21 @@ export function SessionCard({
           <IconButton
             size="small"
             color="error"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
+            onClick={(e) => { e.stopPropagation(); setConfirmOpen(true); }}
           >
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Tooltip>
       </CardActions>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Delete session"
+        message={`Delete "${session.title}"? This cannot be undone.`}
+        loading={deleteLoading}
+        onConfirm={handleDeleteConfirm}
+        onClose={() => setConfirmOpen(false)}
+      />
     </Card>
   );
 }
