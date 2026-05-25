@@ -76,6 +76,13 @@ export interface CompleteSessionRequest {
   exercises: CompleteSessionExercise[];
 }
 
+export interface AddSessionExerciseRequest {
+  exerciseId: number;
+  plannedSets: number;
+  plannedReps: number;
+  plannedWeightKg?: number;
+}
+
 export interface StartNowSessionRequest {
   title: string;
   workoutPlanId?: number;

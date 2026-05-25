@@ -7,6 +7,7 @@ import {
   getSession,
   updateSession,
   completeSession,
+  addSessionExercise,
   deleteSession,
 } from "@/lib/api/sessions";
 import {
@@ -16,6 +17,7 @@ import {
   type ScheduleSessionRequest,
   type StartNowSessionRequest,
   type CompleteSessionRequest,
+  type AddSessionExerciseRequest,
   type SessionFilters,
 } from "@/types/session";
 
@@ -214,6 +216,14 @@ export function useSessionDetail(id: number) {
     [id]
   );
 
+  const handleAddExercise = useCallback(
+    async (req: AddSessionExerciseRequest) => {
+      const updated = await addSessionExercise(id, req);
+      setSession(updated);
+    },
+    [id]
+  );
+
   return {
     session,
     loading,
@@ -221,5 +231,6 @@ export function useSessionDetail(id: number) {
     refresh: load,
     updateStatus: handleUpdateStatus,
     completeSession: handleComplete,
+    addExercise: handleAddExercise,
   };
 }

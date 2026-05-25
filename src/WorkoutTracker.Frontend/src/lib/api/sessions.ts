@@ -6,6 +6,7 @@ import type {
   ScheduleSessionRequest,
   UpdateSessionRequest,
   CompleteSessionRequest,
+  AddSessionExerciseRequest,
   SessionFilters,
 } from "@/types/session";
 
@@ -53,6 +54,16 @@ export function completeSession(
     method: "POST",
     body: JSON.stringify(req),
   });
+}
+
+export function addSessionExercise(
+  sessionId: number,
+  req: AddSessionExerciseRequest
+): Promise<WorkoutSessionDetailResponse> {
+  return apiRequest<WorkoutSessionDetailResponse>(
+    `/api/workout-sessions/${sessionId}/exercises`,
+    { method: "POST", body: JSON.stringify(req) }
+  );
 }
 
 export function deleteSession(id: number): Promise<void> {

@@ -22,11 +22,13 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import CheckIcon from "@mui/icons-material/Check";
 import BlockIcon from "@mui/icons-material/Block";
+import AddIcon from "@mui/icons-material/Add";
 import TimerIcon from "@mui/icons-material/Timer";
 import FlagIcon from "@mui/icons-material/Flag";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { SessionStatusChip } from "@/components/sessions/SessionStatusChip";
+import { AddSessionExerciseDialog } from "@/components/sessions/AddSessionExerciseDialog";
 import { useSessionDetail } from "@/hooks/useWorkoutSessions";
 import { WorkoutStatus } from "@/types/session";
 import type { CompleteSessionRequest } from "@/types/session";
@@ -65,8 +67,10 @@ export default function SessionDetailPage() {
   const router = useRouter();
   const sessionId = Number(id);
 
-  const { session, loading, error, updateStatus, completeSession } =
+  const { session, loading, error, updateStatus, completeSession, addExercise } =
     useSessionDetail(sessionId);
+
+  const [addExerciseOpen, setAddExerciseOpen] = useState(false);
 
   // Live elapsed timer — ticks every second while session is InProgress
   const [elapsed, setElapsed] = useState<string>("");
@@ -158,12 +162,20 @@ export default function SessionDetailPage() {
         }
       />
 
-      {/* Status + scheduled date */}
+      {/* Status + date */}
       <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap", alignItems: "center" }}>
         <SessionStatusChip status={session.status} size="medium" />
-        <Typography variant="caption" color="text.secondary">
-          Scheduled: {formatDate(session.scheduledAtUtc)}
-        </Typography>
+        {(isPlanned || session.status === WorkoutStatus.Skipped) ? (
+          <Typography variant="caption" color="text.secondary">
+            Scheduled: {formatDate(session.scheduledAtUtc)}
+          </Typography>
+        ) : (
+          session.startedAtUtc && (
+            <Typography variant="caption" color="text.secondary">
+              Started: {formatDate(session.startedAtUtc)}
+            </Typography>
+          )
+        )}
       </Box>
 
       {/* Timestamp + duration row */}
@@ -250,15 +262,24 @@ export default function SessionDetailPage() {
           </>
         )}
         {isInProgress && (
-          <Button
-            type="submit"
-            variant="contained"
-            color="success"
-            startIcon={isSubmitting ? undefined : <CheckIcon />}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? <CircularProgress size={20} color="inherit" /> : "Complete Workout"}
-          </Button>
+          <>
+            <Button
+              type="submit"
+              variant="contained"
+              color="success"
+              startIcon={isSubmitting ? undefined : <CheckIcon />}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? <CircularProgress size={20} color="inherit" /> : "Complete Workout"}
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={() => setAddExerciseOpen(true)}
+            >
+              Add exercise
+            </Button>
+          </>
         )}
       </Box>
 
@@ -401,6 +422,13 @@ export default function SessionDetailPage() {
           </Button>
         </Box>
       )}
+
+      <AddSessionExerciseDialog
+        open={addExerciseOpen}
+        existingExerciseIds={session.exercises.map((e) => e.exerciseId)}
+        onClose={() => setAddExerciseOpen(false)}
+        onAdd={addExercise}
+      />
     </Box>
   );
 }

@@ -15,31 +15,29 @@ import Typography from "@mui/material/Typography";
 import CircularProgress from "@mui/material/CircularProgress";
 import { ExercisePickerStep } from "@/components/ui/ExercisePickerStep";
 import type { ExerciseResponse } from "@/types/exercise";
-import type { AddPlanExerciseRequest } from "@/types/plan";
+import type { AddSessionExerciseRequest } from "@/types/session";
 
 const configSchema = z.object({
-  targetSets: z.number({ invalid_type_error: "Required" }).int().min(1, "Min 1"),
-  targetReps: z.number({ invalid_type_error: "Required" }).int().min(1, "Min 1"),
-  targetWeightKg: z.number().min(0, "Min 0").optional(),
+  plannedSets: z.number({ invalid_type_error: "Required" }).int().min(1, "Min 1"),
+  plannedReps: z.number({ invalid_type_error: "Required" }).int().min(1, "Min 1"),
+  plannedWeightKg: z.number().min(0, "Min 0").optional(),
 });
 
 type ConfigData = z.infer<typeof configSchema>;
 
-interface AddExerciseDialogProps {
+interface AddSessionExerciseDialogProps {
   open: boolean;
   existingExerciseIds: number[];
-  nextOrderIndex: number;
   onClose: () => void;
-  onAdd: (req: AddPlanExerciseRequest) => Promise<void>;
+  onAdd: (req: AddSessionExerciseRequest) => Promise<void>;
 }
 
-export function AddExerciseDialog({
+export function AddSessionExerciseDialog({
   open,
   existingExerciseIds,
-  nextOrderIndex,
   onClose,
   onAdd,
-}: AddExerciseDialogProps) {
+}: AddSessionExerciseDialogProps) {
   const [selected, setSelected] = useState<ExerciseResponse | null>(null);
 
   const {
@@ -49,7 +47,7 @@ export function AddExerciseDialog({
     formState: { errors, isSubmitting },
   } = useForm<ConfigData>({
     resolver: zodResolver(configSchema),
-    defaultValues: { targetSets: 3, targetReps: 10 },
+    defaultValues: { plannedSets: 3, plannedReps: 10 },
   });
 
   const handleClose = () => {
@@ -62,10 +60,9 @@ export function AddExerciseDialog({
     if (!selected) return;
     await onAdd({
       exerciseId: selected.id,
-      targetSets: data.targetSets,
-      targetReps: data.targetReps,
-      targetWeightKg: data.targetWeightKg,
-      orderIndex: nextOrderIndex,
+      plannedSets: data.plannedSets,
+      plannedReps: data.plannedReps,
+      plannedWeightKg: data.plannedWeightKg,
     });
     handleClose();
   };
@@ -83,35 +80,38 @@ export function AddExerciseDialog({
           onCancel={handleClose}
         />
       ) : (
-        <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+        <Box
+          component="form"
+          onSubmit={(e: React.FormEvent) => { e.stopPropagation(); handleSubmit(onSubmit)(e); }}
+        >
           <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Typography variant="body2" color="text.secondary">
               {selected.category} · {selected.muscleGroup}
             </Typography>
             <TextField
-              label="Sets"
+              label="Planned sets"
               type="number"
-              {...register("targetSets", { valueAsNumber: true })}
-              error={!!errors.targetSets}
-              helperText={errors.targetSets?.message}
+              {...register("plannedSets", { valueAsNumber: true })}
+              error={!!errors.plannedSets}
+              helperText={errors.plannedSets?.message}
               inputProps={{ min: 1 }}
               fullWidth
             />
             <TextField
-              label="Reps"
+              label="Planned reps"
               type="number"
-              {...register("targetReps", { valueAsNumber: true })}
-              error={!!errors.targetReps}
-              helperText={errors.targetReps?.message}
+              {...register("plannedReps", { valueAsNumber: true })}
+              error={!!errors.plannedReps}
+              helperText={errors.plannedReps?.message}
               inputProps={{ min: 1 }}
               fullWidth
             />
             <TextField
-              label="Weight (kg) — optional"
+              label="Planned weight (kg) — optional"
               type="number"
-              {...register("targetWeightKg", { valueAsNumber: true })}
-              error={!!errors.targetWeightKg}
-              helperText={errors.targetWeightKg?.message}
+              {...register("plannedWeightKg", { valueAsNumber: true })}
+              error={!!errors.plannedWeightKg}
+              helperText={errors.plannedWeightKg?.message}
               inputProps={{ min: 0, step: 0.5 }}
               fullWidth
             />
