@@ -3,20 +3,25 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
-import Fab from "@mui/material/Fab";
 import Alert from "@mui/material/Alert";
 import Chip from "@mui/material/Chip";
 import Pagination from "@mui/material/Pagination";
-import AddIcon from "@mui/icons-material/Add";
+import SpeedDial from "@mui/material/SpeedDial";
+import SpeedDialIcon from "@mui/material/SpeedDialIcon";
+import SpeedDialAction from "@mui/material/SpeedDialAction";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { SessionCard } from "@/components/sessions/SessionCard";
 import { ScheduleSessionDialog } from "@/components/sessions/ScheduleSessionDialog";
+import { StartNowSessionDialog } from "@/components/sessions/StartNowSessionDialog";
 import { CompleteSessionDialog } from "@/components/sessions/CompleteSessionDialog";
 import { useWorkoutSessions } from "@/hooks/useWorkoutSessions";
 import { WorkoutStatus } from "@/types/session";
+import type { StartNowSessionRequest } from "@/types/session";
 
 const statusFilters: Array<{ label: string; value: WorkoutStatus | undefined }> = [
   { label: "All", value: undefined },
@@ -46,9 +51,16 @@ export default function SessionsPage() {
     openFinishDialog,
     finishSession,
     closeFinishDialog,
+    startNowSession,
   } = useWorkoutSessions();
 
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [startNowOpen, setStartNowOpen] = useState(false);
+
+  const handleStartNow = async (req: StartNowSessionRequest) => {
+    const id = await startNowSession(req);
+    router.push(`/sessions/${id}`);
+  };
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -126,19 +138,33 @@ export default function SessionsPage() {
         </>
       )}
 
-      <Fab
-        color="primary"
-        aria-label="Schedule session"
-        onClick={() => setScheduleOpen(true)}
+      <SpeedDial
+        ariaLabel="New session"
         sx={{ position: "fixed", bottom: { xs: 80, sm: 24 }, right: 24 }}
+        icon={<SpeedDialIcon />}
       >
-        <AddIcon />
-      </Fab>
+        <SpeedDialAction
+          icon={<PlayArrowIcon />}
+          tooltipTitle="Start now"
+          onClick={() => setStartNowOpen(true)}
+        />
+        <SpeedDialAction
+          icon={<CalendarMonthIcon />}
+          tooltipTitle="Schedule"
+          onClick={() => setScheduleOpen(true)}
+        />
+      </SpeedDial>
 
       <ScheduleSessionDialog
         open={scheduleOpen}
         onClose={() => setScheduleOpen(false)}
         onSchedule={scheduleSession}
+      />
+
+      <StartNowSessionDialog
+        open={startNowOpen}
+        onClose={() => setStartNowOpen(false)}
+        onStart={handleStartNow}
       />
 
       {sessionToComplete && (

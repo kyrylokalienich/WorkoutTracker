@@ -14,6 +14,7 @@ import {
   type WorkoutSessionSummaryResponse,
   type WorkoutSessionDetailResponse,
   type ScheduleSessionRequest,
+  type StartNowSessionRequest,
   type CompleteSessionRequest,
   type SessionFilters,
 } from "@/types/session";
@@ -128,6 +129,24 @@ export function useWorkoutSessions() {
 
   const handleCloseFinish = useCallback(() => setSessionToComplete(null), []);
 
+  /** Creates a session scheduled for now and immediately transitions it to InProgress. Returns the new session id. */
+  const handleStartNow = useCallback(
+    async (req: StartNowSessionRequest): Promise<number> => {
+      const created = await scheduleSSession({
+        title: req.title,
+        scheduledAtUtc: new Date().toISOString(),
+        ...(req.workoutPlanId ? { workoutPlanId: req.workoutPlanId } : {}),
+      });
+      await updateSession(created.id, {
+        title: created.title,
+        scheduledAtUtc: created.scheduledAtUtc,
+        status: WorkoutStatus.InProgress,
+      });
+      return created.id;
+    },
+    []
+  );
+
   return {
     sessions,
     totalCount,
@@ -146,6 +165,7 @@ export function useWorkoutSessions() {
     openFinishDialog: handleOpenFinish,
     finishSession: handleFinish,
     closeFinishDialog: handleCloseFinish,
+    startNowSession: handleStartNow,
     refresh: load,
   };
 }

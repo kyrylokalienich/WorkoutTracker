@@ -76,6 +76,11 @@ export interface CompleteSessionRequest {
   exercises: CompleteSessionExercise[];
 }
 
+export interface StartNowSessionRequest {
+  title: string;
+  workoutPlanId?: number;
+}
+
 export interface SessionFilters {
   status?: WorkoutStatus;
   from?: string;
