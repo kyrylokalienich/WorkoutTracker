@@ -134,6 +134,23 @@ public class WorkoutSessionsController : BaseController
     }
 
     /// <summary>
+    /// Add a new exercise to an in-progress session.
+    /// </summary>
+    [HttpPost("{id:int}/exercises")]
+    public async Task<IActionResult> AddSessionExercise(
+        int id,
+        [FromBody] AddSessionExerciseRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return ValidationProblem(ModelState);
+
+        var userId = GetCurrentUserId();
+        var result = await _workoutSessionService.AddExerciseAsync(userId, id, request, cancellationToken);
+        return ToActionResult(result);
+    }
+
+    /// <summary>
     /// Delete a workout session.
     /// </summary>
     [HttpDelete("{id:int}")]

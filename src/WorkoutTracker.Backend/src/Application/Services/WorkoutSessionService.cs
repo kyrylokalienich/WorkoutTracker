@@ -275,6 +275,46 @@ public class WorkoutSessionService : IWorkoutSessionService
         return ServiceResult<WorkoutSessionDetailResponse>.Ok(detail!);
     }
 
+    public async Task<ServiceResult<WorkoutSessionDetailResponse>> AddExerciseAsync(
+        int userId,
+        int sessionId,
+        AddSessionExerciseRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var session = await _unitOfWork.Repository<WorkoutSession>().AsQueryable()
+            .FirstOrDefaultAsync(s => s.Id == sessionId && s.UserId == userId, cancellationToken);
+
+        if (session == null)
+            return ServiceResult<WorkoutSessionDetailResponse>.Fail("not_found");
+
+        if (session.Status != WorkoutStatus.InProgress)
+            return ServiceResult<WorkoutSessionDetailResponse>.Fail(
+                "invalid_state",
+                new { message = "Exercises can only be added to in-progress sessions." });
+
+        var exercise = await _unitOfWork.Repository<Exercise>().AsQueryable()
+            .FirstOrDefaultAsync(e => e.Id == request.ExerciseId, cancellationToken);
+
+        if (exercise == null)
+            return ServiceResult<WorkoutSessionDetailResponse>.Fail(
+                "validation_failed",
+                new { exerciseId = new[] { "Exercise not found." } });
+
+        await _unitOfWork.Repository<WorkoutSessionExercise>().AddAsync(new WorkoutSessionExercise
+        {
+            WorkoutSessionId = session.Id,
+            ExerciseId = request.ExerciseId,
+            PlannedSets = request.PlannedSets,
+            PlannedReps = request.PlannedReps,
+            PlannedWeightKg = request.PlannedWeightKg
+        });
+
+        await _unitOfWork.SaveChangesAsync();
+
+        var detail = await BuildDetailAsync(userId, sessionId, cancellationToken);
+        return ServiceResult<WorkoutSessionDetailResponse>.Ok(detail!);
+    }
+
     public async Task<ServiceResult<bool>> DeleteAsync(
         int userId,
         int sessionId,

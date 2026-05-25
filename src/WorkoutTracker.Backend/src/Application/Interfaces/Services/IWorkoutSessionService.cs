@@ -38,6 +38,12 @@ public interface IWorkoutSessionService
         CompleteWorkoutSessionRequest request,
         CancellationToken cancellationToken = default);
 
+    Task<ServiceResult<WorkoutSessionDetailResponse>> AddExerciseAsync(
+        int userId,
+        int sessionId,
+        AddSessionExerciseRequest request,
+        CancellationToken cancellationToken = default);
+
     Task<ServiceResult<bool>> DeleteAsync(
         int userId,
         int sessionId,
