@@ -18,6 +18,7 @@ import { ProgressStats } from "@/components/reports/ProgressStats";
 import { SessionStatusChip } from "@/components/sessions/SessionStatusChip";
 import { listSessions } from "@/lib/api/sessions";
 import { getProgressReport } from "@/lib/api/reports";
+import { defaultDateRange } from "@/hooks/useReports";
 import { useAuth } from "@/context/AuthContext";
 import { WorkoutStatus } from "@/types/session";
 import type { WorkoutSessionSummaryResponse } from "@/types/session";
@@ -40,16 +41,11 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const now = new Date();
-    const from30 = new Date();
-    from30.setDate(from30.getDate() - 30);
+    const { from, to } = defaultDateRange();
 
     Promise.all([
       listSessions({ status: WorkoutStatus.Planned, page: 1, pageSize: 5 }),
-      getProgressReport({
-        from: from30.toISOString().slice(0, 10),
-        to: now.toISOString().slice(0, 10),
-      }),
+      getProgressReport({ from, to }),
     ])
       .then(([sessions, prog]) => {
         setUpcoming(sessions.items);

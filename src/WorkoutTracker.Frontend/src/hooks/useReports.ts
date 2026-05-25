@@ -13,9 +13,10 @@ import type {
   DateRangeFilter,
 } from "@/types/report";
 
-function defaultDateRange(): DateRangeFilter {
+export function defaultDateRange(): DateRangeFilter {
   const to = new Date();
   const from = new Date();
+  to.setDate(to.getDate() + 1);
   from.setDate(from.getDate() - 30);
   return {
     from: from.toISOString().slice(0, 10),
