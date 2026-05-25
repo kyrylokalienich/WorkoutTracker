@@ -4,6 +4,9 @@ namespace WorkoutTracker.Application.Models.Request.WorkoutSessions;
 
 public class CompleteWorkoutSessionRequest
 {
+    [MaxLength(2000)]
+    public string? Comments { get; set; }
+
     [Required]
     public List<CompleteSessionExerciseRequest> Exercises { get; set; } = new();
 }

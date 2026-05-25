@@ -264,6 +264,10 @@ public class WorkoutSessionService : IWorkoutSessionService
         session.CompletedAtUtc = now;
         session.Status = WorkoutStatus.Completed;
         session.UpdatedAtUtc = now;
+        if (request.Comments != null)
+        {
+            session.Comments = string.IsNullOrWhiteSpace(request.Comments) ? null : request.Comments.Trim();
+        }
 
         await _unitOfWork.SaveChangesAsync();
 

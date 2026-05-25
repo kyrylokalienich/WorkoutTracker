@@ -15,27 +15,21 @@ import Box from "@mui/material/Box";
 import CircularProgress from "@mui/material/CircularProgress";
 import type { WorkoutSessionDetailResponse, CompleteSessionRequest } from "@/types/session";
 
-const exerciseSchema = z.object({
+
+const exerciseRowSchema = z.object({
   actualSets: z.number({ invalid_type_error: "Required" }).int().min(1, "Min 1"),
   actualReps: z.number({ invalid_type_error: "Required" }).int().min(1, "Min 1"),
   actualWeightKg: z.number().min(0).optional(),
   notes: z.string().max(500).optional(),
 });
 
-function buildSchema(count: number) {
-  return z.object(
-    Object.fromEntries(
-      Array.from({ length: count }, (_, i) => [String(i), exerciseSchema])
-    )
-  );
-}
+const formSchema = z.object({
+  comments: z.string().max(2000).optional(),
+  exercises: z.array(exerciseRowSchema),
+});
 
-type FormData = Record<string, {
-  actualSets: number;
-  actualReps: number;
-  actualWeightKg?: number;
-  notes?: string;
-}>;
+type FormData = z.infer<typeof formSchema>;
+
 
 interface CompleteSessionDialogProps {
   open: boolean;
@@ -44,43 +38,39 @@ interface CompleteSessionDialogProps {
   onComplete: (req: CompleteSessionRequest) => Promise<void>;
 }
 
+
 export function CompleteSessionDialog({
   open,
   session,
   onClose,
   onComplete,
 }: CompleteSessionDialogProps) {
-  const schema = buildSchema(session.exercises.length);
-
-  const defaultValues = Object.fromEntries(
-    session.exercises.map((ex, i) => [
-      String(i),
-      {
-        actualSets: ex.plannedSets,
-        actualReps: ex.plannedReps,
-        actualWeightKg: ex.plannedWeightKg ?? undefined,
-        notes: "",
-      },
-    ])
-  );
-
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({
-    resolver: zodResolver(schema),
-    defaultValues,
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      comments: session.comments ?? "",
+      exercises: session.exercises.map((ex) => ({
+        actualSets: ex.plannedSets,
+        actualReps: ex.plannedReps,
+        actualWeightKg: ex.plannedWeightKg ?? undefined,
+        notes: "",
+      })),
+    },
   });
 
   const onSubmit = async (data: FormData) => {
     const req: CompleteSessionRequest = {
+      comments: data.comments?.trim() || undefined,
       exercises: session.exercises.map((ex, i) => ({
         sessionExerciseId: ex.id,
-        actualSets: data[String(i)].actualSets,
-        actualReps: data[String(i)].actualReps,
-        actualWeightKg: data[String(i)].actualWeightKg,
-        notes: data[String(i)].notes?.trim() || undefined,
+        actualSets: data.exercises[i].actualSets,
+        actualReps: data.exercises[i].actualReps,
+        actualWeightKg: data.exercises[i].actualWeightKg,
+        notes: data.exercises[i].notes?.trim() || undefined,
       })),
     };
     await onComplete(req);
@@ -92,8 +82,20 @@ export function CompleteSessionDialog({
       <DialogTitle>Complete session</DialogTitle>
       <Box component="form" onSubmit={handleSubmit(onSubmit)}>
         <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          {/* Session-level comments */}
+          <TextField
+            label="Session notes (optional)"
+            {...register("comments")}
+            fullWidth
+            multiline
+            minRows={2}
+            size="small"
+            placeholder="How did it go? Any notes for this session…"
+          />
+
+          {/* Per-exercise fields */}
           {session.exercises.map((ex, i) => {
-            const rowErrors = (errors as Record<string, Record<string, { message?: string }>>)[String(i)];
+            const rowErrors = errors.exercises?.[i];
             return (
               <Box key={ex.id}>
                 {i > 0 && <Divider sx={{ mb: 2 }} />}
@@ -108,7 +110,7 @@ export function CompleteSessionDialog({
                   <TextField
                     label="Actual sets"
                     type="number"
-                    {...register(`${i}.actualSets` as keyof FormData, { valueAsNumber: true })}
+                    {...register(`exercises.${i}.actualSets`, { valueAsNumber: true })}
                     error={!!rowErrors?.actualSets}
                     helperText={rowErrors?.actualSets?.message}
                     inputProps={{ min: 1 }}
@@ -117,7 +119,7 @@ export function CompleteSessionDialog({
                   <TextField
                     label="Actual reps"
                     type="number"
-                    {...register(`${i}.actualReps` as keyof FormData, { valueAsNumber: true })}
+                    {...register(`exercises.${i}.actualReps`, { valueAsNumber: true })}
                     error={!!rowErrors?.actualReps}
                     helperText={rowErrors?.actualReps?.message}
                     inputProps={{ min: 1 }}
@@ -126,7 +128,7 @@ export function CompleteSessionDialog({
                   <TextField
                     label="Weight (kg)"
                     type="number"
-                    {...register(`${i}.actualWeightKg` as keyof FormData, { valueAsNumber: true })}
+                    {...register(`exercises.${i}.actualWeightKg`, { valueAsNumber: true })}
                     error={!!rowErrors?.actualWeightKg}
                     helperText={rowErrors?.actualWeightKg?.message}
                     inputProps={{ min: 0, step: 0.5 }}
@@ -135,7 +137,7 @@ export function CompleteSessionDialog({
                 </Box>
                 <TextField
                   label="Notes (optional)"
-                  {...register(`${i}.notes` as keyof FormData)}
+                  {...register(`exercises.${i}.notes`)}
                   fullWidth
                   size="small"
                   sx={{ mt: 1 }}

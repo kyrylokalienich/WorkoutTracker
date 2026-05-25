@@ -72,6 +72,7 @@ export interface CompleteSessionExercise {
 }
 
 export interface CompleteSessionRequest {
+  comments?: string;
   exercises: CompleteSessionExercise[];
 }
 
