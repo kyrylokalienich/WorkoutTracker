@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { SessionCard } from "@/components/sessions/SessionCard";
 import { ScheduleSessionDialog } from "@/components/sessions/ScheduleSessionDialog";
+import { CompleteSessionDialog } from "@/components/sessions/CompleteSessionDialog";
 import { useWorkoutSessions } from "@/hooks/useWorkoutSessions";
 import { WorkoutStatus } from "@/types/session";
 
@@ -35,10 +36,16 @@ export default function SessionsPage() {
     loading,
     error,
     statusFilter,
+    actionLoading,
+    sessionToComplete,
     setPage,
     setStatusFilter,
     scheduleSession,
     deleteSession,
+    startSession,
+    openFinishDialog,
+    finishSession,
+    closeFinishDialog,
   } = useWorkoutSessions();
 
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -99,6 +106,9 @@ export default function SessionsPage() {
                 session={s}
                 onClick={() => router.push(`/sessions/${s.id}`)}
                 onDelete={() => deleteSession(s.id)}
+                onStart={s.status === WorkoutStatus.Planned ? () => startSession(s.id) : undefined}
+                onFinish={s.status === WorkoutStatus.InProgress ? () => openFinishDialog(s.id) : undefined}
+                actionLoading={actionLoading === s.id}
               />
             ))}
           </div>
@@ -130,6 +140,15 @@ export default function SessionsPage() {
         onClose={() => setScheduleOpen(false)}
         onSchedule={scheduleSession}
       />
+
+      {sessionToComplete && (
+        <CompleteSessionDialog
+          open
+          session={sessionToComplete}
+          onClose={closeFinishDialog}
+          onComplete={finishSession}
+        />
+      )}
     </Box>
   );
 }

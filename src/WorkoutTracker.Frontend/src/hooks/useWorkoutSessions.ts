@@ -9,14 +9,13 @@ import {
   completeSession,
   deleteSession,
 } from "@/lib/api/sessions";
-import type {
-  WorkoutSessionSummaryResponse,
-  WorkoutSessionDetailResponse,
-  ScheduleSessionRequest,
-  UpdateSessionRequest,
-  CompleteSessionRequest,
-  SessionFilters,
+import {
   WorkoutStatus,
+  type WorkoutSessionSummaryResponse,
+  type WorkoutSessionDetailResponse,
+  type ScheduleSessionRequest,
+  type CompleteSessionRequest,
+  type SessionFilters,
 } from "@/types/session";
 
 const PAGE_SIZE = 10;
@@ -28,6 +27,11 @@ export function useWorkoutSessions() {
   const [statusFilter, setStatusFilter] = useState<WorkoutStatus | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Tracks which card's action button is in flight (by session id)
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
+  // Holds the detail needed to show the Finish / CompleteSessionDialog
+  const [sessionToComplete, setSessionToComplete] = useState<WorkoutSessionDetailResponse | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,6 +78,56 @@ export function useWorkoutSessions() {
     setPage(1);
   }, []);
 
+  /** Transition a Planned session to InProgress. Fetches detail first to preserve comments. */
+  const handleStart = useCallback(
+    async (id: number) => {
+      setActionLoading(id);
+      setError(null);
+      try {
+        const detail = await getSession(id);
+        await updateSession(id, {
+          title: detail.title,
+          scheduledAtUtc: detail.scheduledAtUtc,
+          comments: detail.comments ?? undefined,
+          status: WorkoutStatus.InProgress,
+        });
+        await load();
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to start session");
+      } finally {
+        setActionLoading(null);
+      }
+    },
+    [load]
+  );
+
+  /** Fetch detail and open the CompleteSessionDialog for an InProgress session. */
+  const handleOpenFinish = useCallback(async (id: number) => {
+    setActionLoading(id);
+    setError(null);
+    try {
+      const detail = await getSession(id);
+      setSessionToComplete(detail);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to load session");
+    } finally {
+      setActionLoading(null);
+    }
+  }, []);
+
+  /** Called by CompleteSessionDialog on submit. */
+  const handleFinish = useCallback(
+    async (req: CompleteSessionRequest) => {
+      if (!sessionToComplete) return;
+      await completeSession(sessionToComplete.id, req);
+      setSessionToComplete(null);
+      await load();
+    },
+    [sessionToComplete, load]
+  );
+
+  const handleCloseFinish = useCallback(() => setSessionToComplete(null), []);
+
   return {
     sessions,
     totalCount,
@@ -82,10 +136,16 @@ export function useWorkoutSessions() {
     loading,
     error,
     statusFilter,
+    actionLoading,
+    sessionToComplete,
     setPage,
     setStatusFilter: changeStatus,
     scheduleSession: handleSchedule,
     deleteSession: handleDelete,
+    startSession: handleStart,
+    openFinishDialog: handleOpenFinish,
+    finishSession: handleFinish,
+    closeFinishDialog: handleCloseFinish,
     refresh: load,
   };
 }
