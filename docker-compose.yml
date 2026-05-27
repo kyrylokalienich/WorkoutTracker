@@ -18,7 +18,7 @@ services:
       context: ./src/WorkoutTracker.Backend
       dockerfile: Dockerfile
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:5000
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=workouttracker;Username=postgres;Password=postgres"
       Jwt__SecretKey: "change-this-secret-to-something-random-at-least-32-characters"
