@@ -1,5 +1,6 @@
 namespace WorkoutTracker.Application.Models.Response.WorkoutSessions;
 
+/// <summary>Paged list of sessions.</summary>
 public class PagedWorkoutSessionsResponse
 {
     public IReadOnlyList<WorkoutSessionListItemResponse> Items { get; set; } = Array.Empty<WorkoutSessionListItemResponse>();

@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WorkoutTracker.Application.Models.Request.WorkoutPlans;
 
+/// <summary>Adds an exercise entry to a workout plan.</summary>
 public class AddPlanExerciseRequest
 {
     [Required]

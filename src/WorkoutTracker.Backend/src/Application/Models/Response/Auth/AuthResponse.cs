@@ -1,5 +1,6 @@
 namespace WorkoutTracker.Application.Models.Response.Auth;
 
+/// <summary>Sign-in response with user info and tokens.</summary>
 public class AuthResponse
 {
     public int Id { get; set; }

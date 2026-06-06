@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WorkoutTracker.Application.Models.Request.WorkoutPlans;
 
+/// <summary>Payload for creating a new workout plan.</summary>
 public class CreateWorkoutPlanRequest
 {
     [Required]

@@ -1,5 +1,6 @@
 namespace WorkoutTracker.Application.Models.Response.Auth;
 
+/// <summary>New token pair returned after a successful refresh.</summary>
 public class TokenResponse
 {
     public string AccessToken { get; set; } = string.Empty;

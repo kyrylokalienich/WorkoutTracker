@@ -82,7 +82,23 @@ builder.Services.AddProblemDetails();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "WorkoutTracker API", Version = "v1" });
+    c.SwaggerDoc("v1", new OpenApiInfo
+    {
+        Title = "WorkoutTracker API",
+        Version = "v1",
+        Description = "REST API for managing workout plans, sessions, and progress reports."
+    });
+
+    // Include XML comments from API and Application projects.
+    foreach (var xmlFile in new[] { "WorkoutTracker.API.xml", "WorkoutTracker.Application.xml" })
+    {
+        var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+        if (File.Exists(xmlPath))
+            c.IncludeXmlComments(xmlPath);
+    }
+
+    c.OperationFilter<SwaggerExamplesFilter>();
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -90,7 +106,7 @@ builder.Services.AddSwaggerGen(c =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Paste: Bearer {your JWT token}"
+        Description = "Enter your JWT access token: Bearer {token}"
     });
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {

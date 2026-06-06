@@ -1,5 +1,6 @@
 namespace WorkoutTracker.Application.Models.Request.Auth;
 
+/// <summary>New user registration payload.</summary>
 public class SignUpRequest
 {
     public string Email { get; set; } = string.Empty;

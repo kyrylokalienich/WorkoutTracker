@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace WorkoutTracker.Application.Models.Request.WorkoutSessions;
 
+/// <summary>Schedules a new workout session, optionally from a plan snapshot.</summary>
 public class ScheduleWorkoutSessionRequest
 {
     /// <summary>Optional plan to snapshot into session exercises; must belong to the current user.</summary>
