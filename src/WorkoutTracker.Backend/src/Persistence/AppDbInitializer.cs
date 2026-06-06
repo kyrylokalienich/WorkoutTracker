@@ -15,7 +15,10 @@ public static class AppDbInitializer
         var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         logger?.LogInformation("Applying database migrations...");
-        await dbContext.Database.MigrateAsync(cancellationToken);
+        if (dbContext.Database.IsRelational())
+            await dbContext.Database.MigrateAsync(cancellationToken);
+        else
+            await dbContext.Database.EnsureCreatedAsync(cancellationToken);
 
         logger?.LogInformation("Seeding exercises (idempotent)...");
         await ExerciseSeeder.SeedAsync(dbContext, cancellationToken);

@@ -150,3 +150,5 @@ app.MapGet("/health", () => Results.Ok(new { Status = "Healthy" }))
     .WithOpenApi();
 
 app.Run();
+
+public partial class Program { }
