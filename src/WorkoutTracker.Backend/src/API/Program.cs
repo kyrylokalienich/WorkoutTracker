@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
 using WorkoutTracker.API;
 using WorkoutTracker.API.Infrastructure;
 using WorkoutTracker.Application;
@@ -13,6 +14,8 @@ using WorkoutTracker.Persistence;
 DotEnvLoader.Load();
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration));
 
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
@@ -110,6 +113,8 @@ var app = builder.Build();
 await AppDbInitializer.InitializeAsync(app.Services);
 
 app.UseExceptionHandler();
+app.UseSerilogRequestLogging(opts =>
+    opts.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms");
 
 if (app.Environment.IsDevelopment())
 {

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using WorkoutTracker.Application.Interfaces.Providers;
 using WorkoutTracker.Application.Interfaces.Services;
 using WorkoutTracker.Application.Interfaces.UnitOfWork;
@@ -12,17 +13,20 @@ public class AuthService : IAuthService
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtProvider _jwtProvider;
     private readonly IDateTimeProvider _dateTimeProvider;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IUnitOfWork unitOfWork,
         IPasswordHasher passwordHasher,
         IJwtProvider jwtProvider,
-        IDateTimeProvider dateTimeProvider)
+        IDateTimeProvider dateTimeProvider,
+        ILogger<AuthService> logger)
     {
         _unitOfWork = unitOfWork;
         _passwordHasher = passwordHasher;
         _jwtProvider = jwtProvider;
         _dateTimeProvider = dateTimeProvider;
+        _logger = logger;
     }
 
     public async Task<(bool Success, string? Message)> SignUpAsync(string email, string username, string password)
@@ -34,15 +38,15 @@ public class AuthService : IAuthService
             return (false, "Email, username, and password are required.");
         }
 
-        // Check if email already exists
         if (await EmailExistsAsync(email))
         {
+            _logger.LogWarning("Sign-up rejected: email already in use ({Email})", email);
             return (false, "Email is already in use.");
         }
 
-        // Check if username already exists
         if (await UsernameExistsAsync(username))
         {
+            _logger.LogWarning("Sign-up rejected: username already in use ({Username})", username);
             return (false, "Username is already in use.");
         }
 
@@ -63,6 +67,7 @@ public class AuthService : IAuthService
         await _unitOfWork.Repository<User>().AddAsync(user);
         await _unitOfWork.SaveChangesAsync();
 
+        _logger.LogInformation("User registered: {Email}", email);
         return (true, null);
     }
 
@@ -82,12 +87,13 @@ public class AuthService : IAuthService
 
         if (user == null)
         {
+            _logger.LogWarning("Sign-in failed: email not found ({Email})", email);
             return (false, null, null, null, null);
         }
 
-        // Verify password
         if (!_passwordHasher.VerifyPassword(password, user.PasswordHash, user.PasswordSalt))
         {
+            _logger.LogWarning("Sign-in failed: invalid password for user {UserId}", user.Id);
             return (false, null, null, null, null);
         }
 
@@ -111,6 +117,7 @@ public class AuthService : IAuthService
         await _unitOfWork.Repository<RefreshToken>().AddAsync(refreshTokenEntity);
         await _unitOfWork.SaveChangesAsync();
 
+        _logger.LogInformation("User signed in: {UserId}", user.Id);
         var expiresAt = _dateTimeProvider.UtcNow.AddMinutes(15);
         return (true, user.Id, accessToken, refreshToken, expiresAt);
     }
@@ -142,13 +149,14 @@ public class AuthService : IAuthService
 
         if (refreshTokenEntity == null)
         {
+            _logger.LogWarning("Token refresh failed: no valid token for user {UserId}", userId);
             return (false, null, null, null);
         }
 
-        // Verify the refresh token
         if (!_passwordHasher.VerifyPassword(oldRefreshToken, refreshTokenEntity.TokenHash,
                 refreshTokenEntity.TokenHash))
         {
+            _logger.LogWarning("Token refresh failed: token mismatch for user {UserId}", userId);
             return (false, null, null, null);
         }
 
@@ -175,6 +183,7 @@ public class AuthService : IAuthService
         await refreshTokenRepository.AddAsync(newRefreshTokenEntity);
         await _unitOfWork.SaveChangesAsync();
 
+        _logger.LogInformation("Token refreshed for user {UserId}", userId);
         var expiresAt = _dateTimeProvider.UtcNow.AddMinutes(15);
         return (true, newAccessToken, newRefreshToken, expiresAt);
     }
@@ -204,11 +213,11 @@ public class AuthService : IAuthService
             return false;
         }
 
-        // Revoke token
         refreshTokenEntity.IsRevoked = true;
         await refreshTokenRepository.UpdateAsync(refreshTokenEntity);
         await _unitOfWork.SaveChangesAsync();
 
+        _logger.LogInformation("User logged out: {UserId}", userId);
         return true;
     }
 
