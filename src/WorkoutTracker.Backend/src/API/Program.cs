@@ -1,14 +1,15 @@
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using WorkoutTracker.API;
+using WorkoutTracker.API.Infrastructure;
 using WorkoutTracker.Application;
 using WorkoutTracker.Application.Configurations;
 using WorkoutTracker.Persistence;
 
-// Load .env into process environment before configuration binds (overrides appsettings via env vars).
 DotEnvLoader.Load();
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,7 +17,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
 
-// JWT: non-sensitive defaults may live in appsettings; signing key must come from environment / .env (Jwt__SecretKey).
 var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtConfiguration>()
     ?? throw new InvalidOperationException("Jwt configuration section is missing from appsettings.");
 
@@ -53,8 +53,29 @@ builder.Services.AddAuthentication(options =>
     });
 
 builder.Services.AddAuthorization();
+
 builder.Services.AddControllers()
     .AddJsonOptions(o => o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+// Map model-binding validation failures to the standard error envelope.
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(e => e.Value?.Errors.Count > 0)
+            .ToDictionary(
+                e => e.Key,
+                e => e.Value!.Errors.Select(x => x.ErrorMessage).ToArray());
+
+        var response = new ApiErrorResponse("validation_failed", "One or more fields are invalid.", errors);
+        return new BadRequestObjectResult(response);
+    };
+});
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -87,6 +108,8 @@ builder.Services.AddSwaggerGen(c =>
 var app = builder.Build();
 
 await AppDbInitializer.InitializeAsync(app.Services);
+
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
