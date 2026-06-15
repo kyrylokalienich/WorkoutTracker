@@ -65,7 +65,7 @@ jobs:
         run: |
           CMD_ID=$(aws ssm send-command \
             --instance-ids "$INSTANCE_ID" \
-            --document-name "AWS-RunShellCommand" \
+            --document-name "AWS-RunShellScript" \
             --comment "Deploy ${{ github.sha }}" \
             --parameters "commands=/opt/workouttracker/deploy.sh ${{ github.sha }} $REGISTRY $AWS_REGION" \
             --query "Command.CommandId" --output text)
