@@ -1,0 +1,46 @@
+services:
+  api:
+    image: ${ECR_REGISTRY}/workouttracker-api:${IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING}
+      Jwt__SecretKey: ${JWT_SECRET_KEY}
+    expose:
+      - "5000"
+    networks: [app]
+
+  frontend:
+    image: ${ECR_REGISTRY}/workouttracker-frontend:${IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      # Read at runtime by next.config.ts rewrites() to proxy /api/* -> api:5000.
+      NEXT_PUBLIC_API_URL: http://api:5000
+    expose:
+      - "3000"
+    depends_on: [api]
+    networks: [app]
+
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      # ":80" = plain HTTP (no domain). Set to your domain to get automatic HTTPS.
+      DOMAIN: ${DOMAIN:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [frontend, api]
+    networks: [app]
+
+networks:
+  app:
+
+volumes:
+  caddy_data:
+  caddy_config:

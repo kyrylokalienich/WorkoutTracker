@@ -1,0 +1,12 @@
+# Reverse proxy in front of the Next.js frontend.
+# The browser only ever talks to the frontend; Next's rewrites() proxy /api/* to the api container,
+# so the .NET API is never exposed publicly and no CORS config is needed.
+#
+# DOMAIN is injected from the environment (see docker-compose.prod.yml):
+#   DOMAIN=:80                 -> plain HTTP, good for IP-only / learning
+#   DOMAIN=workout.example.com -> Caddy auto-provisions a free Let's Encrypt cert (needs DNS -> EC2 IP)
+
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy frontend:3000
+}
