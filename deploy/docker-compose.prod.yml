@@ -11,8 +11,10 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5000
-      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING}
-      Jwt__SecretKey: ${JWT_SECRET_KEY}
+      # Region for the SSM Parameter Store config provider (reads secrets at startup).
+      AWS_REGION: eu-central-1
+      # ConnectionStrings__DefaultConnection and Jwt__SecretKey now come from
+      # SSM Parameter Store (/workouttracker/...), resolved via the EC2 instance role.
       # Browser origin allowed by CORS — the CloudFront URL (or custom frontend domain).
       Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN}
     expose:

@@ -15,6 +15,12 @@ DotEnvLoader.Load();
 
 var builder = WebApplication.CreateBuilder(args);
 
+// In non-Development environments, load secrets from AWS SSM Parameter Store.
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddSystemsManager("/workouttracker/");
+}
+
 builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration));
 
 builder.Services.AddApplication();
