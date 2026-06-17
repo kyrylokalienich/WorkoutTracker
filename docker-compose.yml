@@ -28,12 +28,20 @@ services:
       db:
         condition: service_healthy
 
+  # Local-dev only: runs `next dev` with hot-reload (the production frontend is a
+  # static export on S3 + CloudFront, so there is no frontend image to build).
+  # The browser calls the API directly, so NEXT_PUBLIC_API_URL points at the
+  # published API port on the host (localhost:5000), not the internal api:5000.
   frontend:
-    build:
-      context: ./src/WorkoutTracker.Frontend
-      dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: http://api:5000
+    image: node:20-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- -H 0.0.0.0"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:5000
+      WATCHPACK_POLLING: "true"   # reliable file watching for bind mounts (esp. on Windows)
+    volumes:
+      - ./src/WorkoutTracker.Frontend:/app
+      - /app/node_modules
     ports:
       - "3000:3000"
     depends_on:
