@@ -1,3 +1,9 @@
+# Production compose for AWS EC2 (frontend moved to S3 + CloudFront).
+# - API image comes from ECR (CI builds & pushes it).
+# - No `frontend` service — the static frontend is served by CloudFront.
+# - Caddy publicly exposes only the API (HTTPS via Let's Encrypt on API_DOMAIN).
+# Values come from /opt/workouttracker/.env (see .env.prod.example).
+
 services:
   api:
     image: ${ECR_REGISTRY}/workouttracker-api:${IMAGE_TAG}
@@ -7,27 +13,18 @@ services:
       ASPNETCORE_URLS: http://+:5000
       ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING}
       Jwt__SecretKey: ${JWT_SECRET_KEY}
+      # Browser origin allowed by CORS — the CloudFront URL (or custom frontend domain).
+      Cors__AllowedOrigins__0: ${FRONTEND_ORIGIN}
     expose:
       - "5000"
-    networks: [app]
-
-  frontend:
-    image: ${ECR_REGISTRY}/workouttracker-frontend:${IMAGE_TAG}
-    restart: unless-stopped
-    environment:
-      # Read at runtime by next.config.ts rewrites() to proxy /api/* -> api:5000.
-      NEXT_PUBLIC_API_URL: http://api:5000
-    expose:
-      - "3000"
-    depends_on: [api]
     networks: [app]
 
   proxy:
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
-      # ":80" = plain HTTP (no domain). Set to your domain to get automatic HTTPS.
-      DOMAIN: ${DOMAIN:-:80}
+      # Public hostname of the API, e.g. workouttracker-api-xx.duckdns.org
+      API_DOMAIN: ${API_DOMAIN}
     ports:
       - "80:80"
       - "443:443"
@@ -35,7 +32,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    depends_on: [frontend, api]
+    depends_on: [api]
     networks: [app]
 
 networks:

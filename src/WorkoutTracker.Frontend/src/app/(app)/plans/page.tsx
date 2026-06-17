@@ -54,7 +54,7 @@ export default function PlansPage() {
             <PlanCard
               key={plan.id}
               plan={plan}
-              onClick={() => router.push(`/plans/${plan.id}`)}
+              onClick={() => router.push(`/plans/view?id=${plan.id}`)}
               onEdit={() => setEditTarget(plan)}
               onDelete={() => deletePlan(plan.id)}
             />

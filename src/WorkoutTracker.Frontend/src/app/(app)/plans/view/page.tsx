@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
@@ -24,10 +24,10 @@ import { usePlanDetail } from "@/hooks/useWorkoutPlans";
 import { updatePlan as apiUpdatePlan } from "@/lib/api/plans";
 import type { CreatePlanRequest } from "@/types/plan";
 
-export default function PlanDetailPage() {
-  const { id } = useParams<{ id: string }>();
+function PlanDetailContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const planId = Number(id);
+  const planId = Number(searchParams.get("id"));
 
   const { plan, loading, error, refresh, addExercise, removeExercise } =
     usePlanDetail(planId);
@@ -143,5 +143,13 @@ export default function PlanDetailPage() {
         onAdd={addExercise}
       />
     </Box>
+  );
+}
+
+export default function PlanDetailPage() {
+  return (
+    <Suspense fallback={null}>
+      <PlanDetailContent />
+    </Suspense>
   );
 }

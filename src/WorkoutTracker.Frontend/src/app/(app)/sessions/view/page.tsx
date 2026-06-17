@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
@@ -62,10 +62,10 @@ function formatDate(iso: string): string {
 }
 
 
-export default function SessionDetailPage() {
-  const { id } = useParams<{ id: string }>();
+function SessionDetailContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const sessionId = Number(id);
+  const sessionId = Number(searchParams.get("id"));
 
   const { session, loading, error, updateStatus, completeSession, addExercise } =
     useSessionDetail(sessionId);
@@ -430,5 +430,13 @@ export default function SessionDetailPage() {
         onAdd={addExercise}
       />
     </Box>
+  );
+}
+
+export default function SessionDetailPage() {
+  return (
+    <Suspense fallback={null}>
+      <SessionDetailContent />
+    </Suspense>
   );
 }

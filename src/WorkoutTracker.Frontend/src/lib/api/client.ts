@@ -1,6 +1,10 @@
 import { tokenStore } from "@/lib/tokenStore";
 import type { RefreshResponse } from "@/types/auth";
 
+// Absolute API origin, baked at build time. Empty string keeps relative paths
+// (e.g. for local `next dev`); in the static export it points at the public API host.
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
+
 export class ApiError extends Error {
   constructor(
     public readonly code: string,
@@ -29,7 +33,7 @@ async function tryRefreshToken(): Promise<boolean> {
 
   isRefreshing = true;
   try {
-    const response = await fetch("/api/auth/refresh", {
+    const response = await fetch(`${API_BASE}/api/auth/refresh`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -62,7 +66,7 @@ export async function apiRequest<T>(
 ): Promise<T> {
   const token = skipAuth ? null : tokenStore.get();
 
-  const response = await fetch(path, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",

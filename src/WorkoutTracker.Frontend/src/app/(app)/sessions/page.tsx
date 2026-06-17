@@ -59,7 +59,7 @@ export default function SessionsPage() {
 
   const handleStartNow = async (req: StartNowSessionRequest) => {
     const id = await startNowSession(req);
-    router.push(`/sessions/${id}`);
+    router.push(`/sessions/view?id=${id}`);
   };
 
   const totalPages = Math.ceil(totalCount / pageSize);
@@ -116,7 +116,7 @@ export default function SessionsPage() {
               <SessionCard
                 key={s.id}
                 session={s}
-                onClick={() => router.push(`/sessions/${s.id}`)}
+                onClick={() => router.push(`/sessions/view?id=${s.id}`)}
                 onDelete={() => deleteSession(s.id)}
                 onStart={s.status === WorkoutStatus.Planned ? () => startSession(s.id) : undefined}
                 onFinish={s.status === WorkoutStatus.InProgress ? () => openFinishDialog(s.id) : undefined}

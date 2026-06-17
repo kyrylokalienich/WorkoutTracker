@@ -42,7 +42,7 @@ export function HistoryList({ data }: HistoryListProps) {
           disablePadding
           divider={i < data.items.length - 1}
         >
-          <ListItemButton onClick={() => router.push(`/sessions/${item.id}`)}>
+          <ListItemButton onClick={() => router.push(`/sessions/view?id=${item.id}`)}>
             <ListItemText
               primary={item.title}
               secondary={formatDate(item.completedAtUtc)}
