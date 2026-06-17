@@ -113,7 +113,7 @@ export default function DashboardPage() {
                       divider={i < upcoming.length - 1}
                       secondaryAction={<SessionStatusChip status={s.status} />}
                     >
-                      <ListItemButton onClick={() => router.push(`/sessions/${s.id}`)}>
+                      <ListItemButton onClick={() => router.push(`/sessions/view?id=${s.id}`)}>
                         <ListItemText
                           primary={s.title}
                           secondary={formatDate(s.scheduledAtUtc)}
