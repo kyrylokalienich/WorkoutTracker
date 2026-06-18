@@ -1,10 +1,13 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using AWS.Logger;
+using AWS.Logger.SeriLog;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
+using Serilog.Formatting.Display;
 using WorkoutTracker.API;
 using WorkoutTracker.API.Infrastructure;
 using WorkoutTracker.Application;
@@ -21,7 +24,20 @@ if (!builder.Environment.IsDevelopment())
     builder.Configuration.AddSystemsManager("/workouttracker/");
 }
 
-builder.Host.UseSerilog((ctx, lc) => lc.ReadFrom.Configuration(ctx.Configuration));
+builder.Host.UseSerilog((ctx, lc) =>
+{
+    lc.ReadFrom.Configuration(ctx.Configuration);
+
+    // In production, also ship logs to CloudWatch so they survive container recreation.
+    // Credentials come from the EC2 instance role; the log group is created on first write.
+    if (!ctx.HostingEnvironment.IsDevelopment())
+    {
+        lc.WriteTo.AWSSeriLog(
+            new AWSLoggerConfig("/workouttracker/api") { Region = "eu-central-1" },
+            textFormatter: new MessageTemplateTextFormatter(
+                "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {SourceContext} {Message:lj}{NewLine}{Exception}"));
+    }
+});
 
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
