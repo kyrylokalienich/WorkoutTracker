@@ -38,9 +38,7 @@ public class CognitoClaimsTransformation : IClaimsTransformation
         if (user is null)
         {
             var email = principal.FindFirstValue("email") ?? $"{sub}@cognito.local";
-            var username = principal.FindFirstValue("cognito:username")
-                           ?? principal.FindFirstValue("username")
-                           ?? email;
+            var username = principal.FindFirstValue("name") ?? email;
 
             user = new User
             {
