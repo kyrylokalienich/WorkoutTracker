@@ -1,5 +1,4 @@
 import { tokenStore } from "@/lib/tokenStore";
-import type { RefreshResponse } from "@/types/auth";
 
 // Absolute API origin, baked at build time. Empty string keeps relative paths
 // (e.g. for local `next dev`); in the static export it points at the public API host.
@@ -13,49 +12,6 @@ export class ApiError extends Error {
   ) {
     super(message);
     this.name = "ApiError";
-  }
-}
-
-let isRefreshing = false;
-
-async function tryRefreshToken(): Promise<boolean> {
-  if (isRefreshing) {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    return tokenStore.get() !== null;
-  }
-
-  const refreshToken =
-    typeof window !== "undefined"
-      ? localStorage.getItem("refreshToken")
-      : null;
-
-  if (!refreshToken) return false;
-
-  isRefreshing = true;
-  try {
-    const response = await fetch(`${API_BASE}/api/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(tokenStore.get()
-          ? { Authorization: `Bearer ${tokenStore.get()}` }
-          : {}),
-      },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!response.ok) return false;
-
-    const data: RefreshResponse = await response.json();
-    tokenStore.set(data.accessToken);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("refreshToken", data.refreshToken);
-    }
-    return true;
-  } catch {
-    return false;
-  } finally {
-    isRefreshing = false;
   }
 }
 
@@ -76,14 +32,9 @@ export async function apiRequest<T>(
   });
 
   if (response.status === 401 && !skipAuth) {
-    const refreshed = await tryRefreshToken();
-    if (refreshed) {
-      return apiRequest<T>(path, options, false);
-    }
+    // Token expired/invalid — Cognito owns the session, so bounce to sign-in.
     tokenStore.clear();
     if (typeof window !== "undefined") {
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
       window.location.href = "/sign-in";
     }
     throw new ApiError("unauthorized", "Session expired");

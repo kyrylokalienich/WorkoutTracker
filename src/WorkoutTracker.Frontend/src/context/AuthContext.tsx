@@ -1,95 +1,84 @@
 "use client";
 
+import { useEffect } from "react";
 import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+  AuthProvider as OidcProvider,
+  useAuth as useOidc,
+} from "react-oidc-context";
+import { WebStorageStateStore } from "oidc-client-ts";
 import { tokenStore } from "@/lib/tokenStore";
-import { signIn as signInApi, logout as logoutApi } from "@/lib/api/auth";
-import type { SignInRequest, StoredUser } from "@/types/auth";
+import { cognitoConfig } from "@/lib/oidc";
 
-interface AuthContextType {
-  user: StoredUser | null;
-  isLoading: boolean;
-  signIn: (req: SignInRequest) => Promise<void>;
-  signOut: () => Promise<void>;
+// react-oidc-context configuration for the Cognito Authorization Code flow.
+const oidcConfig = {
+  authority: cognitoConfig.authority,
+  client_id: cognitoConfig.clientId,
+  redirect_uri:
+    typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : "",
+  response_type: "code",
+  scope: cognitoConfig.scope,
+  // Persist the session across reloads.
+  userStore:
+    typeof window !== "undefined"
+      ? new WebStorageStateStore({ store: window.localStorage })
+      : undefined,
+  // Strip ?code&state from the URL once the code has been exchanged.
+  onSigninCallback: () => {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  },
+};
+
+// Keeps the API client's bearer token in sync with the current OIDC id_token.
+function TokenSync() {
+  const oidc = useOidc();
+  useEffect(() => {
+    if (oidc.user?.id_token) tokenStore.set(oidc.user.id_token);
+    else tokenStore.clear();
+  }, [oidc.user]);
+  return null;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
-
-const USER_KEY = "user";
-const REFRESH_TOKEN_KEY = "refreshToken";
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<StoredUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const storedRefreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-    const storedUser = localStorage.getItem(USER_KEY);
-
-    if (!storedRefreshToken || !storedUser) {
-      setIsLoading(false);
-      return;
-    }
-
-    const parsedUser: StoredUser = JSON.parse(storedUser);
-
-    import("@/lib/api/auth").then(({ refresh }) => {
-      refresh({ refreshToken: storedRefreshToken })
-        .then((data) => {
-          tokenStore.set(data.accessToken);
-          localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-          setUser(parsedUser);
-        })
-        .catch(() => {
-          localStorage.removeItem(REFRESH_TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
-        })
-        .finally(() => setIsLoading(false));
-    });
-  }, []);
-
-  const signIn = useCallback(async (req: SignInRequest) => {
-    const data = await signInApi(req);
-    tokenStore.set(data.accessToken);
-    localStorage.setItem(REFRESH_TOKEN_KEY, data.refreshToken);
-    const storedUser: StoredUser = {
-      id: data.id,
-      email: data.email,
-      username: data.username,
-    };
-    localStorage.setItem(USER_KEY, JSON.stringify(storedUser));
-    setUser(storedUser);
-  }, []);
-
-  const signOut = useCallback(async () => {
-    const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
-    if (refreshToken) {
-      try {
-        await logoutApi({ refreshToken });
-      } catch {
-        /* best-effort */
-      }
-    }
-    tokenStore.clear();
-    localStorage.removeItem(REFRESH_TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    setUser(null);
-  }, []);
-
   return (
-    <AuthContext.Provider value={{ user, isLoading, signIn, signOut }}>
+    <OidcProvider {...oidcConfig}>
+      <TokenSync />
       {children}
-    </AuthContext.Provider>
+    </OidcProvider>
   );
 }
 
-export function useAuth(): AuthContextType {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+// Backwards-compatible shape so existing components keep working unchanged.
+export function useAuth() {
+  const oidc = useOidc();
+  const profile = oidc.user?.profile;
+
+  const user =
+    oidc.isAuthenticated && profile
+      ? {
+          email: (profile.email as string) ?? "",
+          // Friendly display name: the user's name if set, else the local part of
+          // their email (the UUID-like cognito:username is intentionally avoided).
+          username:
+            (profile.name as string) ||
+            (profile.email as string)?.split("@")[0] ||
+            "",
+        }
+      : null;
+
+  return {
+    user,
+    isLoading: oidc.isLoading,
+    // Redirect to the Cognito Hosted UI (login + sign-up live there).
+    signIn: () => {
+      void oidc.signinRedirect();
+    },
+    // Clear the local session, then hit Cognito's (non-standard) logout endpoint.
+    signOut: async () => {
+      await oidc.removeUser();
+      const logoutUri = `${window.location.origin}/`;
+      window.location.href =
+        `${cognitoConfig.domain}/logout?client_id=${cognitoConfig.clientId}` +
+        `&logout_uri=${encodeURIComponent(logoutUri)}`;
+    },
+  };
 }

@@ -1,12 +1,24 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Box from "@mui/material/Box";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
-import Link from "next/link";
-import MuiLink from "@mui/material/Link";
+import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import { SignInForm } from "@/components/auth/SignInForm";
+import CircularProgress from "@mui/material/CircularProgress";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SignInPage() {
+  const { user, isLoading, signIn } = useAuth();
+  const router = useRouter();
+
+  // Already signed in → straight to the app.
+  useEffect(() => {
+    if (!isLoading && user) router.replace("/dashboard");
+  }, [user, isLoading, router]);
+
   return (
     <Box
       sx={{
@@ -19,14 +31,21 @@ export default function SignInPage() {
       }}
     >
       <Card sx={{ width: "100%", maxWidth: 400 }} elevation={2}>
-        <CardContent sx={{ p: 4 }}>
-          <SignInForm />
-          <Typography variant="body2" textAlign="center" sx={{ mt: 2 }}>
-            Don&apos;t have an account?{" "}
-            <MuiLink component={Link} href="/sign-up">
-              Sign up
-            </MuiLink>
+        <CardContent sx={{ p: 4, textAlign: "center" }}>
+          <Typography variant="h5" fontWeight={700} gutterBottom>
+            WorkoutTracker
           </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            Sign in or create an account to continue.
+          </Typography>
+
+          {isLoading ? (
+            <CircularProgress />
+          ) : (
+            <Button variant="contained" size="large" fullWidth onClick={signIn}>
+              Sign in with Cognito
+            </Button>
+          )}
         </CardContent>
       </Card>
     </Box>
