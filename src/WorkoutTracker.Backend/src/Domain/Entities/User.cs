@@ -6,6 +6,8 @@ public class User : BaseEntity
 {
     public string Email { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
+    // Cognito user pool subject (sub). Null for legacy/local accounts; set for Cognito-provisioned users.
+    public string? CognitoSub { get; set; }
     public string PasswordHash { get; set; } = string.Empty;
     public string PasswordSalt { get; set; } = string.Empty;
     public UserRole Role { get; set; } = UserRole.User;

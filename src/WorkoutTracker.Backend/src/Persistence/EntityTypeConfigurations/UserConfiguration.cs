@@ -18,6 +18,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasMaxLength(256);
 
+        builder.Property(u => u.CognitoSub)
+            .HasMaxLength(256);
+
         builder.Property(u => u.PasswordHash)
             .IsRequired();
 
@@ -37,6 +40,10 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsUnique();
 
         builder.HasIndex(u => u.Username)
+            .IsUnique();
+
+        // Unique per Cognito subject; Postgres allows multiple NULLs (legacy local users).
+        builder.HasIndex(u => u.CognitoSub)
             .IsUnique();
 
         // Navigation properties

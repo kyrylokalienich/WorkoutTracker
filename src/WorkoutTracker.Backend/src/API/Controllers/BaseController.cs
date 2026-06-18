@@ -12,7 +12,8 @@ public abstract class BaseController : ControllerBase
 {
     protected int GetCurrentUserId()
     {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        // Local user id is injected by CognitoClaimsTransformation after token validation.
+        var userIdClaim = User.FindFirst(CognitoClaimsTransformation.UserIdClaim)?.Value;
         if (int.TryParse(userIdClaim, out var userId))
             return userId;
 

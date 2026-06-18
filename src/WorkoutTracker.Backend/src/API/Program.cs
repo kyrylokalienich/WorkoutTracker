@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using AWS.Logger;
 using AWS.Logger.SeriLog;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -42,20 +43,10 @@ builder.Host.UseSerilog((ctx, lc) =>
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
 
-var jwtConfig = builder.Configuration.GetSection("Jwt").Get<JwtConfiguration>()
-    ?? throw new InvalidOperationException("Jwt configuration section is missing from appsettings.");
-
-if (string.IsNullOrWhiteSpace(jwtConfig.SecretKey))
-{
-    throw new InvalidOperationException(
-        "Jwt:SecretKey is not set. Add Jwt__SecretKey to a .env file (see src/API/.env.example) or set the environment variable.");
-}
-
-var signingKeyBytes = Encoding.UTF8.GetBytes(jwtConfig.SecretKey);
-if (signingKeyBytes.Length < 32)
-{
-    throw new InvalidOperationException("Jwt:SecretKey must be at least 32 UTF-8 bytes for HS256.");
-}
+var cognitoAuthority = builder.Configuration["Cognito:Authority"]
+    ?? throw new InvalidOperationException("Cognito:Authority is not configured.");
+var cognitoClientId = builder.Configuration["Cognito:ClientId"]
+    ?? throw new InvalidOperationException("Cognito:ClientId is not configured.");
 
 builder.Services.AddAuthentication(options =>
     {
@@ -64,18 +55,22 @@ builder.Services.AddAuthentication(options =>
     })
     .AddJwtBearer(options =>
     {
+        // Cognito is the OIDC authority: signing keys (RS256) are fetched from its
+        // JWKS metadata automatically — no shared secret on our side.
+        options.Authority = cognitoAuthority;
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(signingKeyBytes),
             ValidateIssuer = true,
-            ValidIssuer = jwtConfig.Issuer,
+            ValidIssuer = cognitoAuthority,
             ValidateAudience = true,
-            ValidAudience = jwtConfig.Audience,
+            ValidAudience = cognitoClientId,   // the ID token's "aud" is the app client id
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.FromMinutes(1)
         };
     });
+
+// Maps the Cognito identity (sub) to a local User row, provisioning on first sign-in.
+builder.Services.AddScoped<IClaimsTransformation, CognitoClaimsTransformation>();
 
 builder.Services.AddAuthorization();
 
